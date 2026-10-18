@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.all.min.js"></script>
+<style>
+  :root {
+    --bg: #07060f;
+    --panel: rgba(18, 16, 36, 0.62);
+    --panel-strong: rgba(24, 21, 48, 0.85);
+    --line: rgba(255, 255, 255, 0.09);
+    --text: #f3f1ff;
+    --muted: #a49fc4;
+    --accent: #8b5cf6;
+    --accent-2: #ec4899;
+    --accent-3: #22d3ee;
+    --grad: linear-gradient(135deg, #8b5cf6 0%, #ec4899 55%, #f59e0b 100%);
+    --radius: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; cursor: pointer; border: 0; }
+  .hidden { display: none !important; }
+
+  /* ---------- animated background ---------- */
+  .bg-photo {
+    position: fixed; inset: 0; z-index: -3;
+    background-size: cover; background-position: center;
+    transform: scale(1.08);
+    animation: kenburns 30s ease-in-out infinite alternate;
+    transition: background-image .8s ease;
+  }
+  .bg-photo::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top, rgba(7,6,15,.35), rgba(7,6,15,.92) 70%),
+                linear-gradient(180deg, rgba(7,6,15,.2), rgba(7,6,15,.95));
+  }
+  @keyframes kenburns { from { transform: scale(1.08) translate(0,0); } to { transform: scale(1.18) translate(-2%, -2%); } }
+
+  .blob {
+    position: fixed; z-index: -2; border-radius: 50%;
+    filter: blur(90px); opacity: .55; pointer-events: none;
+    animation: float 18s ease-in-out infinite;
+  }
+  .blob.b1 { width: 480px; height: 480px; background: #7c3aed; top: -120px; left: -120px; }
+  .blob.b2 { width: 420px; height: 420px; background: #db2777; bottom: -140px; right: -100px; animation-delay: -6s; }
+  .blob.b3 { width: 320px; height: 320px; background: #0891b2; top: 40%; left: 55%; animation-delay: -12s; opacity: .35; }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(60px, 40px) scale(1.1); }
+    66% { transform: translate(-40px, 70px) scale(.92); }
+  }
+
+  .stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+  .stars span {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: #fff; opacity: 0; animation: twinkle 4s ease-in-out infinite;
+  }
+  @keyframes twinkle { 0%, 100% { opacity: 0; } 50% { opacity: .9; } }
+
+  .grad-text {
+    background: var(--grad); background-size: 200% 200%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 6s ease infinite;
+  }
+  @keyframes shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+  .btn {
+    position: relative; display: inline-flex; align-items: center; gap: 10px;
+    padding: 15px 30px; border-radius: 999px; font-weight: 600; font-size: 16px;
+    color: #fff; transition: transform .25s cubic-bezier(.2,.9,.3,1.4), box-shadow .25s;
+  }
+  .btn:hover { transform: translateY(-3px) scale(1.03); }
+  .btn:active { transform: scale(.97); }
+  .btn-primary {
+    background: var(--grad); background-size: 200% 200%;
+    animation: shimmer 6s ease infinite;
+    box-shadow: 0 10px 40px -10px rgba(236, 72, 153, .7);
+  }
+  .btn-primary:hover { box-shadow: 0 18px 50px -10px rgba(236, 72, 153, .9); }
+  .btn-ghost { background: rgba(255,255,255,.08); border: 1px solid var(--line); backdrop-filter: blur(10px); }
+  .btn-ghost:hover { background: rgba(255,255,255,.14); }
+
+  /* ---------- landing ---------- */
+  .landing { min-height: 100vh; display: flex; flex-direction: column; }
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px clamp(16px, 5vw, 64px);
+    animation: dropIn .8s ease both;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: "Space Grotesk"; font-weight: 700; font-size: 22px; }
+  .logo-mark {
+    width: 38px; height: 38px; border-radius: 12px; background: var(--grad);
+    display: grid; place-items: center; box-shadow: 0 8px 24px -6px rgba(139,92,246,.8);
+    animation: spinGlow 8s linear infinite;
+  }
+  .logo-mark svg { width: 20px; height: 20px; }
+  @keyframes spinGlow { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(40deg); } }
+
+  .hero {
+    flex: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center;
+    padding: 20px clamp(16px, 5vw, 64px) 60px; max-width: 1280px; margin: 0 auto; width: 100%;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+    background: rgba(255,255,255,.07); border: 1px solid var(--line); font-size: 13px; color: var(--muted);
+    animation: rise .8s .1s ease both;
+  }
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,.7); animation: pulse 2s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.7); } 70% { box-shadow: 0 0 0 10px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+
+  .hero h1 {
+    font-family: "Space Grotesk"; font-size: clamp(44px, 7vw, 88px); line-height: .98;
+    letter-spacing: -.03em; margin: 22px 0;
+  }
+  .hero h1 .word { display: inline-block; opacity: 0; transform: translateY(40px) rotate(4deg); animation: wordIn .9s cubic-bezier(.2,.9,.3,1.2) forwards; }
+  @keyframes wordIn { to { opacity: 1; transform: none; } }
+  .hero p.lead { font-size: clamp(16px, 1.6vw, 19px); color: var(--muted); max-width: 520px; line-height: 1.6; animation: rise .9s .7s ease both; }
+  .cta { display: flex; gap: 14px; margin-top: 36px; flex-wrap: wrap; animation: rise .9s .9s ease both; }
+
+  .social-proof { display: flex; align-items: center; gap: 14px; margin-top: 40px; animation: rise .9s 1.1s ease both; color: var(--muted); font-size: 14px; }
+  .avatars { display: flex; }
+  .avatars img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bg); margin-left: -12px; transition: transform .3s; }
+  .avatars img:first-child { margin-left: 0; }
+  .avatars img:hover { transform: translateY(-6px) scale(1.15); z-index: 2; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  @keyframes dropIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: none; } }
+
+  /* hero mock */
+  .mock { position: relative; height: 520px; perspective: 1200px; animation: rise 1s .5s ease both; }
+  .mock-card {
+    position: absolute; inset: 30px 0 30px 40px; border-radius: 28px; overflow: hidden;
+    background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(24px);
+    box-shadow: 0 40px 100px -20px rgba(0,0,0,.8);
+    transform: rotateY(-12deg) rotateX(6deg); animation: tilt 8s ease-in-out infinite;
+  }
+  @keyframes tilt { 0%, 100% { transform: rotateY(-12deg) rotateX(6deg); } 50% { transform: rotateY(-6deg) rotateX(2deg) translateY(-10px); } }
+  .mock-top { height: 140px; background-size: cover; background-position: center; position: relative; }
+  .mock-top::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent, rgba(18,16,36,.95)); }
+  .mock-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .bubble {
+    display: flex; gap: 10px; align-items: flex-end; opacity: 0;
+    animation: bubbleIn .6s cubic-bezier(.2,.9,.3,1.3) forwards;
+  }
+  .bubble img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+  .bubble .txt { padding: 11px 15px; border-radius: 18px 18px 18px 4px; background: rgba(255,255,255,.09); font-size: 14px; max-width: 75%; }
+  .bubble.me { flex-direction: row-reverse; }
+  .bubble.me .txt { background: var(--grad); border-radius: 18px 18px 4px 18px; }
+  @keyframes bubbleIn { from { opacity: 0; transform: translateY(20px) scale(.8); } to { opacity: 1; transform: none; } }
+  .typing { display: inline-flex; gap: 4px; padding: 14px 16px !important; }
+  .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-6px); opacity: 1; } }
+
+  .float-chip {
+    position: absolute; padding: 12px 16px; border-radius: 16px; background: var(--panel-strong);
+    border: 1px solid var(--line); backdrop-filter: blur(20px); font-size: 13px; display: flex; gap: 10px; align-items: center;
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,.6); animation: bob 5s ease-in-out infinite;
+  }
+  .float-chip.c1 { top: 0; right: -10px; }
+  .float-chip.c2 { bottom: 0; left: 0; animation-delay: -2.5s; }
+  .float-chip b { font-size: 18px; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 0 clamp(16px, 5vw, 64px) 80px; max-width: 1280px; margin: 0 auto; width: 100%; }
+  .feature {
+    border-radius: var(--radius); overflow: hidden; background: var(--panel); border: 1px solid var(--line);
+    backdrop-filter: blur(16px); transition: transform .4s cubic-bezier(.2,.9,.3,1.3), border-color .3s;
+    opacity: 0; transform: translateY(40px);
+  }
+  .feature.visible { opacity: 1; transform: none; transition: opacity .8s ease, transform .8s cubic-bezier(.2,.9,.3,1.2), border-color .3s; }
+  .feature:hover { transform: translateY(-8px); border-color: rgba(236,72,153,.5); }
+  .feature .ph { height: 160px; background-size: cover; background-position: center; transition: transform .6s; }
+  .feature:hover .ph { transform: scale(1.08); }
+  .feature .fb { padding: 20px 22px 24px; }
+  .feature h3 { font-family: "Space Grotesk"; font-size: 20px; margin-bottom: 6px; }
+  .feature p { color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+  /* ---------- chat ---------- */
+  .chat { height: 100vh; display: flex; flex-direction: column; max-width: 980px; margin: 0 auto; padding: 18px 16px; gap: 16px; }
+  .chat-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 18px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line);
+    backdrop-filter: blur(24px); animation: dropIn .6s ease both;
+  }
+  .online { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+  .online .avatars img { width: 30px; height: 30px; margin-left: -9px; border-width: 2px; border-color: #15122b; }
+  .me-chip { display: flex; align-items: center; gap: 10px; }
+  .me-chip img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; background: var(--grad) border-box; }
+  .me-chip .nm { font-weight: 600; font-size: 14px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--muted);
+    background: rgba(255,255,255,.06); transition: all .2s;
+  }
+  .icon-btn:hover { color: #fff; background: rgba(255,255,255,.14); transform: rotate(-8deg) scale(1.08); }
+  .icon-btn svg { width: 18px; height: 18px; }
+
+  .composer-row { display: flex; gap: 12px; align-items: flex-end; }
+  .emoji-bar {
+    display: flex; gap: 2px; padding: 8px 2px 0; margin-top: 8px; border-top: 1px solid var(--line);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .emoji-bar::-webkit-scrollbar { display: none; }
+  .emoji-bar button {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 12px; background: transparent; font-size: 21px; line-height: 1;
+    display: grid; place-items: center; transition: transform .2s cubic-bezier(.2,.9,.3,1.6), background .2s;
+  }
+  .emoji-bar button:hover { background: rgba(255,255,255,.1); transform: translateY(-4px) scale(1.25); }
+  .emoji-bar button:active { transform: scale(.9); }
+  .emoji-bar button.pop { animation: emojiPop .4s ease; }
+  @keyframes emojiPop { 50% { transform: scale(1.6) rotate(-12deg); } }
+  .composer {
+    display: flex; flex-direction: column; padding: 12px; border-radius: 24px;
+    background: var(--panel-strong); border: 1px solid var(--line); backdrop-filter: blur(24px);
+    animation: rise .6s .1s ease both; position: relative; transition: box-shadow .3s, border-color .3s;
+  }
+  .composer:focus-within { border-color: rgba(139,92,246,.6); box-shadow: 0 0 0 4px rgba(139,92,246,.15), 0 20px 60px -20px rgba(139,92,246,.6); }
+  .composer textarea {
+    flex: 1; resize: none; border: 0; outline: 0; background: transparent; color: var(--text);
+    font: inherit; font-size: 15px; padding: 10px 8px; max-height: 140px; min-height: 44px; line-height: 1.5;
+  }
+  .composer textarea::placeholder { color: #7d78a0; }
+  .send {
+    width: 48px; height: 48px; border-radius: 16px; background: var(--grad); color: #fff; display: grid; place-items: center;
+    flex-shrink: 0; transition: transform .25s cubic-bezier(.2,.9,.3,1.5), box-shadow .25s;
+    box-shadow: 0 10px 30px -8px rgba(236,72,153,.8);
+  }
+  .send:hover { transform: scale(1.1) rotate(-10deg); }
+  .send:disabled { opacity: .4; transform: none; cursor: default; }
+  .send svg { width: 20px; height: 20px; }
+  .send.fly svg { animation: fly .6s ease; }
+  @keyframes fly { 0% { transform: none; } 50% { transform: translate(18px, -18px) scale(.6); opacity: 0; } 51% { transform: translate(-18px, 18px) scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+  .chat { position: relative; }
+  .feed-wrap {
+    flex: 1; overflow-y: auto; padding: 20px 8px 14px; display: flex; flex-direction: column;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent;
+    mask-image: linear-gradient(180deg, transparent 0, #000 28px); -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 28px);
+  }
+  .feed { display: flex; flex-direction: column; gap: 12px; margin-top: auto; }
+  .live { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; color: var(--muted); padding: 0 6px 16px; text-transform: uppercase; letter-spacing: .1em; }
+  .jump {
+    position: absolute; right: 32px; bottom: 160px; z-index: 5; height: 42px; min-width: 42px; padding: 0 12px;
+    border-radius: 999px; background: var(--panel-strong); border: 1px solid var(--line); color: #fff;
+    display: flex; align-items: center; gap: 6px; backdrop-filter: blur(20px); font-size: 13px; font-weight: 600;
+    box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); animation: popIn .35s cubic-bezier(.2,.9,.3,1.3);
+  }
+  .jump svg { width: 16px; height: 16px; }
+  .jump span:empty { display: none; }
+  .jump span { background: var(--grad); border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+
+  .msg { display: flex; gap: 12px; align-items: flex-start; max-width: 82%; }
+  .msg.entering { animation: msgIn .55s cubic-bezier(.2,.9,.3,1.25) both; }
+  .msg.leaving { animation: msgOut .4s ease forwards; }
+  .msg.mine { align-self: flex-end; flex-direction: row-reverse; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(28px) scale(.9); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+  @keyframes msgOut { to { opacity: 0; transform: scale(.85); height: 0; margin: 0; } }
+  .msg .av { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 6px 16px -4px rgba(0,0,0,.6); border: 2px solid rgba(255,255,255,.12); }
+  .card {
+    position: relative; padding: 12px 16px 12px; border-radius: 6px 20px 20px 20px;
+    background: var(--panel-strong); border: 1px solid var(--line); backdrop-filter: blur(20px);
+    min-width: 160px;
+  }
+  .msg.mine .card {
+    border-radius: 20px 6px 20px 20px; border-color: transparent;
+    background: linear-gradient(135deg, rgba(139,92,246,.92), rgba(236,72,153,.88));
+    box-shadow: 0 14px 40px -14px rgba(236,72,153,.75);
+  }
+  .meta { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .sender { font-weight: 600; font-size: 13.5px; }
+  .msg:not(.mine) .sender { color: var(--c, #c4b5fd); }
+  .time { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .msg.mine .time { color: rgba(255,255,255,.75); }
+  .edited { font-size: 11px; font-style: italic; opacity: .7; }
+  .content { font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; }
+  .card.flash { animation: flash 1s ease; }
+  @keyframes flash { 0% { box-shadow: 0 0 0 0 rgba(34,211,238,.9); } 100% { box-shadow: 0 0 0 14px rgba(34,211,238,0); } }
+  .actions {
+    position: absolute; top: -14px; left: -10px; display: flex; gap: 6px; opacity: 0; transform: translateY(6px);
+    transition: all .2s;
+  }
+  .msg:hover .actions, .msg:focus-within .actions { opacity: 1; transform: none; }
+  .actions button {
+    width: 30px; height: 30px; border-radius: 10px; background: #1d1938; color: #fff; display: grid; place-items: center;
+    border: 1px solid var(--line); box-shadow: 0 6px 16px -4px rgba(0,0,0,.6); transition: transform .2s;
+  }
+  .actions button:hover { transform: scale(1.15); }
+  .actions button.del:hover { background: #be123c; }
+  .actions svg { width: 14px; height: 14px; }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); animation: rise .6s ease both; }
+  .empty img { width: 200px; height: 140px; object-fit: cover; border-radius: 20px; margin-bottom: 18px; opacity: .85; }
+
+  /* ---------- sweetalert theme ---------- */
+  .swal2-popup.aurora {
+    background: rgba(20, 17, 40, .92) !important; color: var(--text) !important;
+    border: 1px solid var(--line); border-radius: 28px !important; backdrop-filter: blur(30px);
+    box-shadow: 0 40px 120px -20px rgba(139,92,246,.55) !important; padding: 0 0 26px !important; overflow: hidden;
+  }
+  .swal2-container.swal2-backdrop-show { background: rgba(5, 4, 12, .7) !important; backdrop-filter: blur(6px); }
+  .aurora .swal2-image { margin: 0 0 8px !important; width: 100% !important; height: 150px !important; object-fit: cover; border-radius: 0; mask-image: linear-gradient(180deg, #000 55%, transparent); -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); }
+  .aurora .swal2-title { font-family: "Space Grotesk"; color: var(--text) !important; font-size: 28px !important; padding-top: 4px !important; }
+  .aurora .swal2-html-container { color: var(--muted) !important; margin: 8px 28px 0 !important; }
+  .aurora .swal2-input, .aurora .swal2-textarea {
+    background: rgba(255,255,255,.06) !important; border: 1px solid var(--line) !important; color: var(--text) !important;
+    border-radius: 14px !important; box-shadow: none !important; margin: 10px auto 0 !important; width: 100% !important; font-size: 15px !important;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .aurora .swal2-textarea { margin: 14px 28px 0 !important; width: auto !important; }
+  .aurora .swal2-input:focus, .aurora .swal2-textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 4px rgba(139,92,246,.2) !important; }
+  .aurora .swal2-input::placeholder, .aurora .swal2-textarea::placeholder { color: #7d78a0; }
+  .aurora .swal2-actions { margin-top: 22px !important; gap: 10px; }
+  .aurora .swal2-confirm { background: var(--grad) !important; border-radius: 999px !important; padding: 12px 30px !important; font-weight: 600 !important; box-shadow: 0 10px 30px -8px rgba(236,72,153,.8) !important; }
+  .aurora .swal2-confirm.danger { background: linear-gradient(135deg, #e11d48, #f97316) !important; }
+  .aurora .swal2-cancel, .aurora .swal2-deny { background: rgba(255,255,255,.08) !important; border-radius: 999px !important; padding: 12px 26px !important; color: var(--text) !important; }
+  .aurora .swal2-validation-message { background: rgba(225,29,72,.15) !important; color: #fda4af !important; border-radius: 12px; margin: 14px 28px 0 !important; }
+  .aurora .swal2-icon { margin-top: 30px !important; }
+  .avatar-pick { text-align: center; margin-bottom: 4px; }
+  .avatar-preview {
+    width: 104px; height: 104px; margin: 6px auto 10px; border-radius: 50%; padding: 3px;
+    background: var(--grad); background-size: 200% 200%; animation: shimmer 6s ease infinite;
+    box-shadow: 0 14px 40px -10px rgba(236,72,153,.7); position: relative;
+  }
+  .avatar-preview .inner {
+    width: 100%; height: 100%; border-radius: 50%; background: #1d1938; display: grid; place-items: center;
+    overflow: hidden; font-size: 40px; color: var(--muted);
+  }
+  .avatar-preview img { width: 100%; height: 100%; object-fit: cover; animation: popIn .45s cubic-bezier(.2,.9,.3,1.3); }
+  .upload-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 999px;
+    background: var(--grad); color: #fff; font-weight: 600; font-size: 14px;
+    box-shadow: 0 10px 28px -8px rgba(236,72,153,.8); transition: transform .25s cubic-bezier(.2,.9,.3,1.5);
+  }
+  .upload-btn:hover { transform: translateY(-2px) scale(1.04); }
+  .upload-btn svg { width: 16px; height: 16px; }
+  .or-line { display: flex; align-items: center; gap: 12px; margin: 14px 0 12px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  .or-line::before, .or-line::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .faces { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 0 2px; }
+  .face {
+    aspect-ratio: 1; border-radius: 50%; overflow: hidden; padding: 0; background: #1d1938;
+    border: 2px solid transparent; transition: transform .25s cubic-bezier(.2,.9,.3,1.5), border-color .2s, box-shadow .2s;
+    opacity: 0; animation: popIn .4s cubic-bezier(.2,.9,.3,1.3) forwards;
+  }
+  .face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .face:hover { transform: scale(1.12); }
+  .face.selected { border-color: #f0abfc; box-shadow: 0 0 0 3px rgba(236,72,153,.4); transform: scale(1.1); }
+  .face.upload {
+    display: grid; place-items: center; border: 2px dashed rgba(255,255,255,.25); color: var(--text); background: rgba(255,255,255,.05);
+  }
+  .face.upload svg { width: 20px; height: 20px; }
+  .face.upload.selected { border-style: solid; }
+  .me-chip img { cursor: pointer; transition: transform .25s cubic-bezier(.2,.9,.3,1.5); }
+  .me-chip img:hover { transform: scale(1.12) rotate(-4deg); }
+  .auth-form { text-align: left; padding: 0 4px; }
+  .auth-form label { display: block; font-size: 12px; color: var(--muted); margin-top: 14px; text-transform: uppercase; letter-spacing: .08em; }
+  .auth-switch { margin-top: 16px; font-size: 13px; text-align: center; }
+  .auth-switch a { color: #f0abfc; cursor: pointer; font-weight: 600; text-decoration: none; }
+  .swal2-popup.swal2-toast.aurora-toast { background: rgba(20,17,40,.95) !important; color: var(--text) !important; border: 1px solid var(--line); border-radius: 16px !important; }
+  .aurora-toast .swal2-title { color: var(--text) !important; font-size: 14px !important; }
+  .aurora-toast .swal2-timer-progress-bar { background: var(--grad) !important; }
+
+  /* swal animations */
+  .pop-in { animation: popIn .5s cubic-bezier(.2,.9,.3,1.3) both; }
+  .pop-out { animation: popOut .25s ease both; }
+  @keyframes popIn { from { opacity: 0; transform: scale(.7) translateY(30px); } to { opacity: 1; transform: none; } }
+  @keyframes popOut { to { opacity: 0; transform: scale(.9) translateY(10px); } }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .mock { height: 440px; max-width: 520px; width: 100%; margin: 0 auto; }
+    .mock-card { inset: 30px 10px 30px 10px; }
+    .features { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .online .label, .me-chip .nm { display: none; }
+    .msg { max-width: 94%; }
+    .float-chip.c1 { right: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-photo" id="bgPhoto"></div>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="stars" id="stars"></div>
+
+<!-- ================= LANDING ================= -->
+<section class="landing" id="landing">
+  <nav class="nav">
+    <div class="logo">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></div>
+      Aurora
+    </div>
+    <button class="btn btn-ghost" data-action="login">Log in</button>
+  </nav>
+
+  <div class="hero">
+    <div>
+      <span class="eyebrow"><span class="pulse-dot"></span> Live, real-time conversations</span>
+      <h1 id="heroTitle"></h1>
+      <p class="lead">A gorgeous place to talk with your people. Messages appear the second they're sent, and you can edit what you wrote at any time.</p>
+      <div class="cta">
+        <button class="btn btn-primary" data-action="register">
+          Start chatting free
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <button class="btn btn-ghost" data-action="login">I have an account</button>
+      </div>
+      <div class="social-proof">
+        <div class="avatars" id="proofAvatars"></div>
+        <span>Join <b id="userCount" style="color:var(--text)">people</b> already chatting</span>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="mock-card">
+        <div class="mock-top" style="background-image:url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=900&q=80')"></div>
+        <div class="mock-body" id="mockBody"></div>
+      </div>
+      <div class="float-chip c1"><b>⚡</b> Delivered in under a second</div>
+      <div class="float-chip c2"><b>✏️</b> Edit your own messages</div>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80')"></div>
+      <div class="fb"><h3>Instant everything</h3><p>The feed refreshes every second, so the conversation always stays live.</p></div>
+    </div>
+    <div class="feature">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80')"></div>
+      <div class="fb"><h3>Your words, your control</h3><p>Change any message you've sent. Nobody else can touch it.</p></div>
+    </div>
+    <div class="feature">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=80')"></div>
+      <div class="fb"><h3>Feels like home</h3><p>Familiar layout: type at the bottom, newest messages right above, with sender and exact time.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHAT ================= -->
+<section class="chat hidden" id="chat">
+  <header class="chat-head">
+    <div class="logo">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></div>
+      <span class="label">Aurora</span>
+    </div>
+    <div class="online"><div class="avatars" id="memberAvatars"></div><span class="label" id="memberCount"></span></div>
+    <div class="me-chip">
+      <img id="meAvatar" alt="">
+      <span class="nm" id="meName"></span>
+      <button class="icon-btn" id="logoutBtn" title="Log out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="feed-wrap" id="feedWrap">
+    <div class="live"><span class="pulse-dot"></span> Live · updates every second</div>
+    <div class="feed" id="feed"></div>
+  </div>
+
+  <button class="jump hidden" id="jumpBtn" title="Jump to newest">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    <span id="jumpCount"></span>
+  </button>
+
+  <form class="composer" id="composer">
+    <div class="composer-row">
+      <textarea id="input" rows="1" placeholder="Type a message…  (Enter to send, Shift+Enter for a new line)" maxlength="2000"></textarea>
+      <button class="send" id="sendBtn" type="submit" title="Send" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+    <div class="emoji-bar" id="emojiBar"></div>
+  </form>
+</section>
+
+<script>
+const POLL_MS = 1000;
+const U = (id, w = 200) => `https://images.unsplash.com/photo-${id}?w=${w}&h=${w}&fit=crop&crop=faces&q=80`;
+const PORTRAITS = [
+  "1534528741775-53994a69daeb", "1500648767791-00dcc994a43e", "1494790108377-be9c29b29330",
+  "1507003211169-0a1dd7228f2d", "1438761681033-6461ffad8d80", "1472099645785-5658abf4ff4e",
+  "1544005313-94ddf0286df2", "1506794778202-cad84cf45f1d", "1517841905240-472988babdf9",
+  "1539571696357-5a69c17a67c6",
+];
+const NAME_COLORS = ["#c4b5fd", "#f9a8d4", "#67e8f9", "#fcd34d", "#86efac", "#fdba74", "#a5b4fc", "#f0abfc"];
+const BG_LANDING = "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80";
+const BG_CHAT = "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1920&q=80";
+
+function hash(s) { let h = 0; for (const c of s.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+const avatarFor = (name) => U(PORTRAITS[hash(name) % PORTRAITS.length]);
+const colorFor = (name) => NAME_COLORS[hash(name) % NAME_COLORS.length];
+
+// Show a user's chosen/uploaded picture, falling back to a generated face
+const usersById = new Map();
+const avatarBust = {};
+function setAvatar(img, userId, name) {
+  img.dataset.uid = userId ?? "";
+  img.alt = name;
+  const known = usersById.get(userId);
+  if (!userId || (known && !known.has_avatar)) { img.onerror = null; img.src = avatarFor(name); return; }
+  img.onerror = () => { img.onerror = null; img.src = avatarFor(name); };
+  img.src = `/users/${userId}/avatar${avatarBust[userId] ? "?v=" + avatarBust[userId] : ""}`;
+}
+const fmtTime = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+const $ = (id) => document.getElementById(id);
+
+/* ---------- state & API ---------- */
+let token = null, me = null, pollTimer = null, polling = false;
+const nodes = new Map();
+try { token = localStorage.getItem("aurora_token"); } catch (e) {}
+
+async function api(path, { method = "GET", body } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (res.status === 204) return null;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(typeof data.detail === "string" ? data.detail
+      : Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(", ") : `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+/* ---------- SweetAlert theme ---------- */
+const Fancy = Swal.mixin({
+  customClass: { popup: "aurora" },
+  showClass: { popup: "pop-in" },
+  hideClass: { popup: "pop-out" },
+  buttonsStyling: true,
+});
+const Toast = Swal.mixin({
+  toast: true, position: "top-end", showConfirmButton: false, timer: 2200, timerProgressBar: true,
+  customClass: { popup: "aurora-toast" },
+});
+
+/* ---------- avatar picker (pick a face or upload) ---------- */
+const ICON_UPLOAD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>`;
+
+const avatarPickerHtml = () => `
+  <div class="avatar-pick">
+    <div class="avatar-preview"><div class="inner" id="swPreview">🙂</div></div>
+    <button type="button" class="upload-btn" id="swUploadBtn">${ICON_UPLOAD} Upload your photo</button>
+    <div class="or-line"><span>or pick a face</span></div>
+    <div class="faces" id="swFaces"></div>
+    <input type="file" id="swFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+  </div>`;
+
+function cropToDataUrl(file, size = 256) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.width, img.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      canvas.getContext("2d").drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(img.src);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => reject(new Error("That file isn't an image I can read"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Fills the picker and returns a state object: { preset } or { avatar: dataUrl }
+function wireAvatarPicker() {
+  const state = {};
+  const preview = $("swPreview"), faces = $("swFaces"), file = $("swFile");
+  const showPreview = (src) => { preview.innerHTML = ""; const i = new Image(); i.src = src; preview.appendChild(i); };
+  const select = (tile) => { faces.querySelectorAll(".face").forEach(f => f.classList.toggle("selected", f === tile)); };
+
+  const build = (presets) => {
+    faces.innerHTML = presets.map((p, i) =>
+      `<button type="button" class="face" data-id="${p.id}" style="animation-delay:${i * 0.04}s" title="Use this face"><img src="${p.url}" alt=""></button>`
+    ).join("") + `<button type="button" class="face upload" style="animation-delay:${presets.length * 0.04}s" title="Upload a photo">${ICON_UPLOAD}</button>`;
+  };
+  build(PORTRAITS.map(id => ({ id, url: U(id, 160) })));
+  api("/avatars").then(list => { if (list.length) build(list); }).catch(() => {});
+
+  $("swUploadBtn").addEventListener("click", () => file.click());
+  faces.addEventListener("click", (e) => {
+    const tile = e.target.closest(".face");
+    if (!tile) return;
+    if (tile.classList.contains("upload")) return file.click();
+    delete state.avatar;
+    state.preset = tile.dataset.id;
+    select(tile);
+    showPreview(tile.querySelector("img").src);
+    Swal.resetValidationMessage();
+  });
+
+  file.addEventListener("change", async () => {
+    const f = file.files[0];
+    file.value = "";
+    if (!f) return;
+    try {
+      const dataUrl = await cropToDataUrl(f);
+      delete state.preset;
+      state.avatar = dataUrl;
+      const tile = faces.querySelector(".face.upload");
+      tile.innerHTML = `<img src="${dataUrl}" alt="">`;
+      select(tile);
+      showPreview(dataUrl);
+      Swal.resetValidationMessage();
+    } catch (err) {
+      Swal.showValidationMessage(err.message);
+    }
+  });
+  return state;
+}
+
+const avatarBody = (state) => state.avatar ? { avatar: state.avatar } : { avatar_preset: state.preset };
+
+function authDialog(mode) {
+  const isLogin = mode === "login";
+  let picked = {};
+  return Fancy.fire({
+    imageUrl: isLogin ? "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=900&q=80" : undefined,
+    title: isLogin ? "Welcome back" : "Create your account",
+    html: `
+      ${isLogin ? "" : avatarPickerHtml()}
+      <div class="auth-form">
+        <label for="swName">Name</label>
+        <input id="swName" class="swal2-input" placeholder="e.g. Maya" autocomplete="username" maxlength="30">
+        <label for="swPass">Password</label>
+        <input id="swPass" class="swal2-input" type="password" placeholder="At least 4 characters" autocomplete="${isLogin ? "current-password" : "new-password"}">
+        ${isLogin ? "" : `<label for="swPass2">Confirm password</label>
+        <input id="swPass2" class="swal2-input" type="password" placeholder="Type it again" autocomplete="new-password">`}
+        <div class="auth-switch">${isLogin ? "New here?" : "Already have an account?"}
+          <a id="swSwitch">${isLogin ? "Create an account" : "Log in"}</a></div>
+      </div>`,
+    confirmButtonText: isLogin ? "Log in" : "Create account",
+    showCancelButton: true,
+    cancelButtonText: "Cancel",
+    focusConfirm: false,
+    showLoaderOnConfirm: true,
+    didOpen: () => {
+      if (!isLogin) picked = wireAvatarPicker();
+      $("swName").focus();
+      $("swSwitch").onclick = () => { Swal.close(); setTimeout(() => authDialog(isLogin ? "register" : "login"), 260); };
+      Swal.getPopup().addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") Swal.clickConfirm(); });
+    },
+    preConfirm: async () => {
+      const name = $("swName").value.trim();
+      const password = $("swPass").value;
+      if (name.length < 2) return Swal.showValidationMessage("Name needs at least 2 characters");
+      if (password.length < 4) return Swal.showValidationMessage("Password needs at least 4 characters");
+      if (!isLogin && password !== $("swPass2").value) return Swal.showValidationMessage("Passwords don't match");
+      if (!isLogin && !picked.preset && !picked.avatar) return Swal.showValidationMessage("Pick a face or upload a photo for your profile");
+      try {
+        if (!isLogin) await api("/users", { method: "POST", body: { name, password, ...avatarBody(picked) } });
+        return await api("/login", { method: "POST", body: { name, password } });
+      } catch (e) {
+        Swal.showValidationMessage(e.message);
+      }
+    },
+    allowOutsideClick: () => !Swal.isLoading(),
+  }).then(async (r) => {
+    if (!r.isConfirmed || !r.value) return;
+    token = r.value.token; me = r.value.user;
+    try { localStorage.setItem("aurora_token", token); } catch (e) {}
+    await Fancy.fire({
+      icon: "success",
+      title: isLogin ? `Hey ${me.name}!` : `Welcome, ${me.name}!`,
+      text: isLogin ? "Good to see you again." : "Your account is ready. Let's chat.",
+      timer: 1400, showConfirmButton: false,
+    });
+    enterChat();
+  });
+}
+
+/* ---------- landing ---------- */
+function buildLanding() {
+  const words = ["Conversations", "that", "feel", "alive."];
+  $("heroTitle").innerHTML = words.map((w, i) =>
+    `<span class="word ${i === 0 || i === 3 ? "grad-text" : ""}" style="animation-delay:${0.2 + i * 0.12}s">${w}</span>`
+  ).join(" ");
+
+  $("proofAvatars").innerHTML = PORTRAITS.slice(0, 6).map(p => `<img src="${U(p, 96)}" alt="">`).join("");
+
+  const script = [
+    { me: false, p: PORTRAITS[0], t: "Did you see the northern lights last night?! 🌌" },
+    { me: true, p: PORTRAITS[3], t: "YES. I'm still not over it." },
+    { me: false, p: PORTRAITS[4], t: "Sending you my photos right now" },
+    { me: true, p: PORTRAITS[3], typing: true },
+  ];
+  $("mockBody").innerHTML = script.map((m, i) => `
+    <div class="bubble ${m.me ? "me" : ""}" style="animation-delay:${1 + i * 0.7}s">
+      <img src="${U(m.p, 80)}" alt="">
+      <div class="txt ${m.typing ? "typing" : ""}">${m.typing ? "<i></i><i></i><i></i>" : m.t}</div>
+    </div>`).join("");
+
+  const io = new IntersectionObserver((entries) => entries.forEach((e, i) => {
+    if (e.isIntersecting) { setTimeout(() => e.target.classList.add("visible"), i * 120); io.unobserve(e.target); }
+  }), { threshold: 0.2 });
+  document.querySelectorAll(".feature").forEach(f => io.observe(f));
+
+  api("/users").then(users => { $("userCount").textContent = `${users.length} ${users.length === 1 ? "person" : "people"}`; }).catch(() => {});
+}
+
+function buildStars() {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement("span");
+    s.style.left = Math.random() * 100 + "%";
+    s.style.top = Math.random() * 100 + "%";
+    s.style.animationDelay = (Math.random() * 4).toFixed(2) + "s";
+    s.style.animationDuration = (3 + Math.random() * 4).toFixed(2) + "s";
+    frag.appendChild(s);
+  }
+  $("stars").appendChild(frag);
+}
+
+document.querySelectorAll("[data-action]").forEach(b =>
+  b.addEventListener("click", () => authDialog(b.dataset.action)));
+
+/* ---------- chat ---------- */
+function showLanding() {
+  stopPolling();
+  $("chat").classList.add("hidden");
+  $("landing").classList.remove("hidden");
+  $("bgPhoto").style.backgroundImage = `url('${BG_LANDING}')`;
+}
+
+function enterChat() {
+  $("landing").classList.add("hidden");
+  $("chat").classList.remove("hidden");
+  $("bgPhoto").style.backgroundImage = `url('${BG_CHAT}')`;
+  $("meName").textContent = me.name;
+  usersById.set(me.id, me);
+  setAvatar($("meAvatar"), me.id, me.name);
+  $("meAvatar").title = "Change your photo";
+  $("feed").innerHTML = "";
+  nodes.clear();
+  firstRender = true;
+  setUnseen(0);
+  $("jumpBtn").classList.add("hidden");
+  $("input").focus();
+  startPolling();
+}
+
+function startPolling() {
+  stopPolling();
+  let tick = 0;
+  const run = () => { poll(); if (tick++ % 5 === 0) refreshMembers(); };
+  run();
+  pollTimer = setInterval(run, POLL_MS);
+}
+function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
+
+async function poll() {
+  if (polling) return;
+  polling = true;
+  try {
+    render(await api("/messages?limit=200"));
+  } catch (e) {
+    console.warn("poll failed", e);
+  } finally {
+    polling = false;
+  }
+}
+
+async function refreshMembers() {
+  try {
+    const users = await api("/users");
+    users.forEach(u => usersById.set(u.id, u));
+    const recent = users.slice(-5);
+    const box = $("memberAvatars");
+    if (box.dataset.ids !== recent.map(u => u.id).join(",")) {
+      box.dataset.ids = recent.map(u => u.id).join(",");
+      box.innerHTML = "";
+      recent.forEach(u => { const img = new Image(); setAvatar(img, u.id, u.name); img.title = u.name; box.appendChild(img); });
+    }
+    $("memberCount").textContent = `${users.length} member${users.length === 1 ? "" : "s"}`;
+  } catch (e) {}
+}
+
+const ICON_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+const ICON_DEL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>`;
+
+function buildMessage(m) {
+  const mine = me && m.user_id === me.id;
+  const el = document.createElement("div");
+  el.className = "msg" + (mine ? " mine" : "");
+  el.style.setProperty("--c", colorFor(m.sender));
+  el.innerHTML = `
+    <img class="av" alt="">
+    <div class="card">
+      ${mine ? `<div class="actions"><button class="edit" title="Edit">${ICON_EDIT}</button><button class="del" title="Delete">${ICON_DEL}</button></div>` : ""}
+      <div class="meta"><span class="sender"></span><span class="time"></span><span class="edited"></span></div>
+      <div class="content"></div>
+    </div>`;
+  setAvatar(el.querySelector(".av"), m.user_id, m.sender);
+  if (mine) {
+    el.querySelector(".edit").onclick = () => editMessage(m.id);
+    el.querySelector(".del").onclick = () => deleteMessage(m.id);
+  }
+  fillMessage(el, m);
+  return el;
+}
+
+function fillMessage(el, m) {
+  el.dataset.updated = m.updated_at;
+  el.dataset.content = m.content;
+  el.querySelector(".sender").textContent = me && m.user_id === me.id ? `${m.sender} (you)` : m.sender;
+  el.querySelector(".time").textContent = fmtTime(m.created_at);
+  el.querySelector(".edited").textContent = m.updated_at !== m.created_at ? "· edited" : "";
+  el.querySelector(".content").textContent = m.content;
+}
+
+let firstRender = true, unseen = 0;
+const feedWrap = $("feedWrap");
+const nearBottom = () => feedWrap.scrollHeight - feedWrap.scrollTop - feedWrap.clientHeight < 120;
+const scrollToBottom = (smooth = true) => feedWrap.scrollTo({ top: feedWrap.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+function setUnseen(n) {
+  unseen = n;
+  $("jumpCount").textContent = n ? String(n) : "";
+}
+feedWrap.addEventListener("scroll", () => {
+  const atBottom = nearBottom();
+  $("jumpBtn").classList.toggle("hidden", atBottom);
+  if (atBottom) setUnseen(0);
+});
+$("jumpBtn").addEventListener("click", () => scrollToBottom());
+
+function render(newestFirst) {
+  const list = [...newestFirst].reverse(); // oldest at top, newest right above the text box
+  const feed = $("feed");
+  const ids = new Set(list.map(m => m.id));
+  const stick = firstRender || nearBottom();
+  let added = 0, addedMine = false;
+
+  for (const [id, el] of nodes) {
+    if (!ids.has(id)) {
+      nodes.delete(id);
+      el.classList.remove("entering");
+      el.classList.add("leaving");
+      setTimeout(() => el.remove(), 400);
+    }
+  }
+
+  let prev = null;
+  for (const m of list) {
+    let el = nodes.get(m.id);
+    if (!el) {
+      el = buildMessage(m);
+      if (!firstRender) el.classList.add("entering");
+      nodes.set(m.id, el);
+      added++;
+      if (me && m.user_id === me.id) addedMine = true;
+      if (prev) prev.after(el); else feed.prepend(el);
+    } else if (el.dataset.updated !== m.updated_at) {
+      fillMessage(el, m);
+      const card = el.querySelector(".card");
+      card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+    }
+    prev = el;
+  }
+
+  let empty = feed.querySelector(".empty");
+  if (list.length === 0 && !empty) {
+    feed.insertAdjacentHTML("beforeend", `<div class="empty">
+      <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500&q=80" alt="">
+      <h3 style="font-family:'Space Grotesk';color:var(--text);margin-bottom:6px">It's quiet in here</h3>
+      <p>Be the first to say something.</p></div>`);
+  } else if (list.length && empty) {
+    empty.remove();
+  }
+
+  if (added) {
+    if (stick || addedMine) { scrollToBottom(!firstRender); setUnseen(0); }
+    else { setUnseen(unseen + added); $("jumpBtn").classList.remove("hidden"); }
+  }
+  firstRender = false;
+}
+
+async function editMessage(id) {
+  const el = nodes.get(id);
+  const { value, isConfirmed } = await Fancy.fire({
+    title: "Edit message",
+    input: "textarea",
+    inputValue: el ? el.dataset.content : "",
+    inputAttributes: { maxlength: 2000 },
+    showCancelButton: true,
+    confirmButtonText: "Save changes",
+    inputValidator: (v) => !v.trim() && "A message can't be empty",
+    showLoaderOnConfirm: true,
+    preConfirm: async (v) => {
+      try { return await api(`/messages/${id}`, { method: "PATCH", body: { content: v.trim() } }); }
+      catch (e) { Swal.showValidationMessage(e.message); }
+    },
+  });
+  if (isConfirmed && value) { Toast.fire({ icon: "success", title: "Message updated" }); poll(); }
+}
+
+async function deleteMessage(id) {
+  const r = await Fancy.fire({
+    icon: "warning", title: "Delete this message?", text: "This can't be undone.",
+    showCancelButton: true, confirmButtonText: "Delete", customClass: { popup: "aurora", confirmButton: "danger" },
+  });
+  if (!r.isConfirmed) return;
+  try {
+    await api(`/messages/${id}`, { method: "DELETE" });
+    Toast.fire({ icon: "success", title: "Message deleted" });
+    poll();
+  } catch (e) { Toast.fire({ icon: "error", title: e.message }); }
+}
+
+const input = $("input"), sendBtn = $("sendBtn");
+
+const EMOJIS = ["😀", "😂", "🥰", "😍", "😎", "🤩", "😉", "🤔", "😅", "😭", "😡", "🥳", "👍", "👏", "🙏", "💪", "👋", "❤️", "🔥", "✨", "🎉", "💯", "🚀", "🌈", "☕", "🍕"];
+$("emojiBar").innerHTML = EMOJIS.map(e => `<button type="button" title="${e}">${e}</button>`).join("");
+$("emojiBar").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const emoji = btn.textContent;
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+  input.focus();
+  input.selectionStart = input.selectionEnd = start + emoji.length;
+  autosize();
+  btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop");
+});
+function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 140) + "px"; sendBtn.disabled = !input.value.trim(); }
+input.addEventListener("input", autosize);
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("composer").requestSubmit(); }
+});
+$("composer").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const content = input.value.trim();
+  if (!content) return;
+  sendBtn.disabled = true;
+  sendBtn.classList.remove("fly"); void sendBtn.offsetWidth; sendBtn.classList.add("fly");
+  try {
+    await api("/messages", { method: "POST", body: { content } });
+    input.value = ""; autosize();
+    poll();
+  } catch (err) {
+    if (err.status === 401) return sessionExpired();
+    Toast.fire({ icon: "error", title: err.message });
+    sendBtn.disabled = false;
+  }
+});
+
+$("meAvatar").addEventListener("click", async () => {
+  let picked = {};
+  const r = await Fancy.fire({
+    title: "Your profile photo",
+    html: avatarPickerHtml(),
+    showCancelButton: true,
+    confirmButtonText: "Save photo",
+    showLoaderOnConfirm: true,
+    didOpen: () => {
+      picked = wireAvatarPicker();
+      const current = new Image();
+      setAvatar(current, me.id, me.name);
+      $("swPreview").innerHTML = ""; $("swPreview").appendChild(current);
+    },
+    preConfirm: async () => {
+      if (!picked.preset && !picked.avatar) return Swal.showValidationMessage("Pick a face or upload a photo first");
+      try { return await api(`/users/${me.id}`, { method: "PATCH", body: avatarBody(picked) }); }
+      catch (e) { Swal.showValidationMessage(e.message); }
+    },
+  });
+  if (!r.isConfirmed || !r.value) return;
+  me = r.value;
+  usersById.set(me.id, me);
+  avatarBust[me.id] = Date.now();
+  document.querySelectorAll(`img[data-uid="${me.id}"]`).forEach(img => setAvatar(img, me.id, me.name));
+  Toast.fire({ icon: "success", title: "Looking good! Photo updated" });
+});
+
+$("logoutBtn").addEventListener("click", async () => {
+  const r = await Fancy.fire({
+    imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=900&q=80",
+    title: "Leaving already?", text: "You can come back any time.",
+    showCancelButton: true, confirmButtonText: "Log out", cancelButtonText: "Stay",
+  });
+  if (!r.isConfirmed) return;
+  try { await api("/logout", { method: "POST" }); } catch (e) {}
+  clearSession();
+  Toast.fire({ icon: "info", title: "See you soon 👋" });
+  showLanding();
+});
+
+function clearSession() {
+  token = null; me = null;
+  try { localStorage.removeItem("aurora_token"); } catch (e) {}
+}
+
+function sessionExpired() {
+  clearSession();
+  showLanding();
+  Fancy.fire({ icon: "info", title: "Session expired", text: "Please log in again." });
+}
+
+/* ---------- boot ---------- */
+buildStars();
+buildLanding();
+showLanding();
+if (token) {
+  api("/users/me").then(u => { me = u; enterChat(); }).catch(clearSession);
+}
+</script>
+</body>
+</html>
